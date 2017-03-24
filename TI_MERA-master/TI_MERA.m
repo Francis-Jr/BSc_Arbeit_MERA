@@ -84,6 +84,12 @@ for sweep = 1:sweepmax
     top = tsplit(V(:,idx(1)),1,[size(w{num_levels},1),size(w{num_levels},1)]);
     fprintf('Sweep: %d, Energy: %.15e\n',sweep,hspec(idx(1),idx(1))/L + shift);
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 'halleluja' sound to notify finished iteration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+load handel
+sound(y,Fs)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
