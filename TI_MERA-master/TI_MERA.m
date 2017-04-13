@@ -15,14 +15,16 @@ function TI_MERA
 % -2 -3 -4   -2  -4
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+cd /Users/jakobunfried/GitHub/BSc_Arbeit_MERA/TI_MERA-master
+
 %inputs
 num_levels = 5;     %number of levels 
 L = 2*3^num_levels; %chain length
 lambda = 1.0;       %magnetic field
 chi = 8;            %max chi
-ULmax = 1;          %number of updates on single tensor
-optmax = 1;         %number of updates on tensor layer
-sweepmax = 50;      %number of full network sweeps
+ULmax = 2;          %number of updates on single tensor
+optmax = 2;         %number of updates on tensor layer
+sweepmax = 500;      %number of full network sweeps // default 50
 
 %turn off warnings
 warning('off','MATLAB:eigs:SigmaChangedToSA');
@@ -40,6 +42,9 @@ h0 = h;
 w = cell(num_levels,1);
 u = cell(num_levels,1);
 rho = cell(num_levels,1);
+
+%storage for energy-shifts
+energy = zeros(sweepmax,1);
 
 %generate random start tensors
 level = 1;
@@ -83,13 +88,21 @@ for sweep = 1:sweepmax
     [~,idx] = sort(diag(hspec));
     top = tsplit(V(:,idx(1)),1,[size(w{num_levels},1),size(w{num_levels},1)]);
     fprintf('Sweep: %d, Energy: %.15e\n',sweep,hspec(idx(1),idx(1))/L + shift);
+    energy(sweep) = hspec(idx(1),idx(1))/L + shift;
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% save data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+savedata(energy);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 'halleluja' sound to notify finished iteration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-load gong
-sound(y,Fs)
+load handel
+sound(y,1.8*Fs)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -261,6 +274,20 @@ for optcount = 1:optmax
         w = tsplit(w,2,[wleg2,wleg3,wleg4]);
     end
 end
+end
+
+function savedata(energy)
+%saves relevant data 
+mkdir('data',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'))
+
+title = strcat('data/',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'), '/energy.csv');
+dlmwrite(title, energy, 'precision', 15);
+energy
+
+x = 1:1:size(energy);
+plot(x,energy,'*');
+title = strcat('data/',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'), '/energy');
+print(title,'-dpng');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
