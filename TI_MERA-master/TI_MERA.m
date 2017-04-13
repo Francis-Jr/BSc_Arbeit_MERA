@@ -34,6 +34,11 @@ warning('off','ncon:suboptimalsequence');
 [h,d,shift] = QIsing_twosite(lambda);
 h0 = h;
 
+%Magnetisierungs 2-site operator
+pauli_z = [1 0; 0 -1];
+m0 = 0.5*(ncon({pauli_z,eye(2)},{[-1,-2],[-3,-4]})...
+    + ncon({eye(2),pauli_z},{[-1,-2],[-3,-4]}));
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %initialise tensors
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,8 +48,9 @@ w = cell(num_levels,1);
 u = cell(num_levels,1);
 rho = cell(num_levels,1);
 
-%storage for energy-shifts
+%storage for energy-shifts / other observables
 energy = zeros(sweepmax,1);
+magnetisierung = zeros(sweepmax,1);
 
 %generate random start tensors
 level = 1;
@@ -89,17 +95,63 @@ for sweep = 1:sweepmax
     top = tsplit(V(:,idx(1)),1,[size(w{num_levels},1),size(w{num_levels},1)]);
     fprintf('Sweep: %d, Energy: %.15e\n',sweep,hspec(idx(1),idx(1))/L + shift);
     energy(sweep) = hspec(idx(1),idx(1))/L + shift;
+    
+    %magnetisierung
+    m = m0;
+
+    for level = 1:num_levels 
+        m = ascend(m, u{level}, w{level});
+    end
+    magnetisierung(sweep) = ncon({m, top, conj(top)},{[1,2,3,4],[1,3],[2,4]});
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% compute some observables
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%MAGNETISIERUNG
+
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % save data
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-savedata(energy);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+timestring = datestr(datetime,'yyyy_mmm_dd__HH_MM_SS');
+mkdir('data', timestring)
+
+
+%parameters
+title = strcat('data/', timestring, '/parameters.txt');
+fileID = fopen(title, 'w');
+fprintf(fileID, '%s \t %6.0f \n' , 'num_levels', num_levels);
+fprintf(fileID, '%s \t %6.0f \n' , 'system length', L);
+fprintf(fileID, '%s \t \t %6.0f \n' , 'lambda', lambda);
+fprintf(fileID, '%s \t \t %6.0f \n' , 'chi', chi);
+fprintf(fileID, '%s \t \t %6.0f \n' , 'ULmax', ULmax);
+fprintf(fileID, '%s \t \t %6.0f \n' , 'optmax', optmax);
+fprintf(fileID, '%s \t %6.0f \n' , 'sweepmax', sweepmax);
+
+%observablen
+    %title = strcat('data/', timestring, '/observables.txt');
+    %fileID = fopen(title, 'w');
+    %fprintf(fileID, '%s \t %6.0f \n' , 'Magnetisierung m', m);
+
+%energy csv
+title = strcat('data/',timestring, '/energy.csv');
+dlmwrite(title, energy, 'precision', 15);
+
+%magnetisierung csv
+title = strcat('data/',timestring, '/magnetisierung.csv');
+dlmwrite(title, magnetisierung, 'precision', 15);
+
+%energy plot
+x = 1:1:size(energy);
+plot(x,energy,'*');
+title = strcat('data/',timestring, '/energy');
+print(title,'-dpng');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 'halleluja' sound to notify finished iteration
+% 'halleluja' sound to notify program end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 load handel
 sound(y,1.8*Fs)
@@ -182,6 +234,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function h = ascend(h,u,w)
 %ascending superoperator, used to raise Hamiltonian
+
+%or any operator that is a sum of two-site operators
+%for single two-site operators, raising wold require averaging with a 1/3
+%factor for TI MERA or selecting one of the diagrams for TV MERA
 
 %diagram 1 - left
 h_1 = ncon({w,w,u,h,conj(u),conj(w),conj(w)},...
@@ -276,19 +332,6 @@ for optcount = 1:optmax
 end
 end
 
-function savedata(energy)
-%saves relevant data 
-mkdir('data',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'))
-
-title = strcat('data/',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'), '/energy.csv');
-dlmwrite(title, energy, 'precision', 15);
-energy
-
-x = 1:1:size(energy);
-plot(x,energy,'*');
-title = strcat('data/',datestr(datetime,'yyyy_mmm_dd__HH_MM_SS'), '/energy');
-print(title,'-dpng');
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %optimal contraction orders using netcon

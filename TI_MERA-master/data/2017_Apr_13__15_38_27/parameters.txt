@@ -1,0 +1,7 @@
+num_levels 	      5 
+system length 	    486 
+lambda 	 	      1 
+chi 	 	      8 
+ULmax 	 	      2 
+optmax 	 	      2 
+sweepmax 	    500 

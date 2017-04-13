@@ -1,0 +1,6 @@
+num_levels 	      5 
+lambda 	 	      1 
+chi 	 	      2 
+ULmax 	 	      2 
+optmax 	 	      2 
+sweepmax 	    500 
